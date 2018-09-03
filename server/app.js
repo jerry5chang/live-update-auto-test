@@ -18,7 +18,8 @@ app.get('/updateMD5.cgi', function (req, res) {
         "note": "_US_note.zip"
     };
 
-    var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/wireless/ASUSWRT/";
+    var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/"
+    downloadLink += (req.query.PATH) ? req.query.PATH : "Wireless/ASUSWRT/";
     downloadLink += req.query.MODEL;
     downloadLink += "_";
     downloadLink += req.query.FW.replace("004", "004_");
@@ -44,7 +45,8 @@ app.get('/liveUpdateTest.cgi', function (req, res) {
         "note": "_US_note.zip"
     };
 
-    var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/wireless/ASUSWRT/";
+    var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/"
+    downloadLink += (req.query.PATH) ? req.query.PATH : "Wireless/ASUSWRT/";
     downloadLink += req.query.MODEL;
     downloadLink += "_";
     downloadLink += req.query.FW.replace("004", "004_");

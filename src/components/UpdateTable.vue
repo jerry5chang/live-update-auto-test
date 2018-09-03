@@ -1,13 +1,45 @@
 <template>
     <div>
-        <div id="pageMask" style="display: none"></div>
+        <div id="pageMask" class="mask" style="display: none"></div>
+
+        <div id="addItemPage" class="mask" style="display: none">
+            <div>
+                <div>
+                    <input class="textInput" id="importFwVersion" placeholder="Firmware File Name" type="text">
+                </div>
+
+                <div>
+                    <input class="textInput" id="firmwareMD5" maxlength="32" placeholder="MD5" type="text">
+                </div>
+            
+                <div>
+                    <input id="isREQ" type="checkbox">REQ
+                </div>
+
+                <div class="debugMode">
+                    <input type="file" id="uploadField" @change="filesChange($event.target.files);"
+                    class="input-file">
+                </div>
+            
+                <div class="updateBtnContainer">
+                    <div id="updateBtn" @click="addItem()">Add</div>
+                </div>
+            </div>
+        </div>
+
         <div class="btnContainer">
-            <input class="textInput" id="importFwVersion" placeholder="Firmware File Name" type="text">
-            <input class="textInput" id="firmwareMD5" maxlength="32" placeholder="MD5" type="text">
-            <input id="isREQ" type="checkbox">REQ
-            <div class="button" id="updateBtn" @click="update()"></div>
-            <div class="button" id="saveBtn" @click="saveInfo()"></div>
-            <div class="button" id="checkAllBtn" @click="checkAll()"></div>
+            <div style="height: 0px;">
+                <select @change="changePath()" id="pathSelector"></select>
+            </div>
+
+            <div>
+            </div>
+
+            <div>
+                <div class="button" id="addBtn" @click="showAddPage()"></div>
+                <div class="button" id="saveBtn" @click="saveInfo()"></div>
+                <div class="button" id="checkAllBtn" @click="checkAll()"></div>
+            </div>
         </div>
 
         <table class="infoTable" cellspacing=0 border="1px">
@@ -24,24 +56,26 @@
                 <!--td>Note</td-->
                 <td style="width:10%;" class="header notInfo">MD5</td>
                 <td style="width:15%;" class="header notInfo alignCenter">Status</td>
-                <td style="width:5%;" class="header notInfo alignCenter">Remove</td>
+                <td style="width:5%;" class="header notInfo alignCenter donotshow debugMode">Update MD5</td>
+                <td style="width:5%;" class="header notInfo alignCenter donotshow debugMode">Remove</td>
             </tr>
             
             <template v-for="item in versionInfo">
                 <tr v-bind:id="item.MODEL">
                     <td name="MODEL">{{item.MODEL}}</td>
-                    <td class="editable" name="REQFW">{{item.REQFW}}</td>
-                    <td class="editable" name="REQEXT">{{item.REQEXT}}</td>
-                    <td class="editable" name="FW">{{item.FW}}</td>
-                    <td class="editable" name="EXT">{{item.EXT}}</td>
+                    <td class="editable" name="REQFW"><div>{{item.REQFW}}</div></td>
+                    <td class="editable" name="REQEXT"><div>{{item.REQEXT}}</div></td>
+                    <td class="editable" name="FW"><div>{{item.FW}}</div></td>
+                    <td class="editable" name="EXT"><div>{{item.EXT}}</div></td>
                     <td class="donotshow" name="URL">{{item.URL}}</td>
                     <td class="donotshow" name="UT">{{item.UT}}</td>
-                    <td class="editable donotshow" name="BETAFW">{{item.BETAFW}}</td>
-                    <td class="editable donotshow" name="BETAEXT">{{item.BETAEXT}}</td>
+                    <td class="editable donotshow" name="BETAFW"><div>{{item.BETAFW}}</div></td>
+                    <td class="editable donotshow" name="BETAEXT"><div>{{item.BETAEXT}}</div></td>
                     <!--td>{{item.Note}}</td-->
-                    <td class="editable notInfo md5" name="MD5">{{item.MD5}}</td>
+                    <td class="editable notInfo md5" name="MD5"><div>{{item.MD5}}</div></td>
                     <td class="notInfo checkStatus alignCenter" @click="checkFw($event)">{{item.STATUS}}</td>
-                    <td class="notInfo alignCenter" @click="remove($event)"><div class="removeBtn button">-</div></td>
+                    <td class="notInfo alignCenter donotshow debugMode" @click="updateMD5($event)"><div class="removeBtn button"></div></td>
+                    <td class="notInfo alignCenter donotshow debugMode" @click="remove($event)"><div class="removeBtn button">-</div></td>
                 </tr>
             </template>
         </table>
@@ -49,7 +83,57 @@
 </template>
 
 <script>
-const msgRef = firebase.database().ref('test');
+var debugMode = true;
+
+const defPath = 'official'
+var msgRef = firebase.database().ref(defPath);
+const downloadPath = {
+    "official": "Wireless/ASUSWRT/",
+    "official_v30": "Wireless/ASUSWRT/",
+    "sq": "LiveUpdate/Release/Wireless_SQ/",
+    "mr": "LiveUpdate/Release/Wireless_SQ/" 
+}
+
+function updateVersion(importFwVersion) {
+    if(importFwVersion == "") return false;
+
+    var postData = {};
+    var splitSharp = importFwVersion.split("#");
+    var splitUnderline = importFwVersion.split("_");
+
+    Array.prototype.insert = function ( index, item ) {
+        this.splice( index, 0, item );
+    }
+
+    if(splitSharp.length > 1){
+        if(splitSharp.length < 10){
+            splitSharp.insert(1, "REQFW")
+            splitSharp.insert(2, "REQEXT")
+        }
+
+        postData.MODEL = splitSharp[0].replace("+", "plus");
+        postData.REQFW = splitSharp[1].replace("REQFW", "");
+        postData.REQEXT = splitSharp[2].replace("REQEXT", "");
+        postData.FW = splitSharp[3].replace("FW", "");
+        postData.EXT = splitSharp[4].replace("EXT", "");
+    }
+    else{
+        postData.MODEL = splitUnderline[0].replace("+", "plus");
+        postData.FW = splitUnderline[1].replace(/\./g, '') + splitUnderline[2];
+        postData.EXT = splitUnderline[3].split(".")[0];
+    }
+
+    if($("#isREQ").is(":checked")){
+        postData.REQFW = postData.FW;
+        postData.REQEXT = postData.EXT
+    }
+
+    postData.UT = "4208";
+    postData.MD5 = ($("#firmwareMD5").val() === "") ? "NO_INFO" : $("#firmwareMD5").val();
+
+    if(debugMode) console.log("[update->Query]", postData)
+    msgRef.child(postData.MODEL).update(postData)
+}
 
 export default {
     name: 'ReleaseNote',
@@ -62,7 +146,7 @@ export default {
 
     methods: {
         saveInfo() {
-            const vm = this;
+            const _versionInfo = this.versionInfo;
             var infoHeader = [];
             var modelInfo = [];
 
@@ -76,70 +160,71 @@ export default {
                 document.body.removeChild(element);
             }
 
-            $(".infoTable").find($("tr")).each(function(i, model){
-                if($(this).attr("class") === "headerBar"){
-                    $(model).find($("td")).each(function(j, item){
-                        if($(item).hasClass("notInfo")) return true;
-                        infoHeader.push($(item).html())
-                    })
-                    return true;
+            for(var model in _versionInfo){
+                var thisModel = _versionInfo[model];
+                modelInfo.push(thisModel.MODEL);
+    
+                if(thisModel.REQFW){
+                    modelInfo.push("REQFW" + thisModel.REQFW);
+                    modelInfo.push("REQEXT" + thisModel.REQEXT);
                 }
 
-                $(model).find($("td")).each(function(j, item){
-                    if($(item).hasClass("notInfo")) return true;
-                    if(infoHeader[j].indexOf("REQ") !== -1 && $(item).html() === "") return true;
+                modelInfo.push("FW" + thisModel.FW);
+                modelInfo.push("EXT" + thisModel.EXT);
+                modelInfo.push("URL");
+                modelInfo.push("UT" + thisModel.UT);
+                modelInfo.push("BETAFW");
+                modelInfo.push("BETAEXT");
+            }
 
-                    modelInfo.push(infoHeader[j] + $(item).html())
-                })
-
-                modelInfo.push("")
-            })
-
-            download(modelInfo.join("#").replace("MODEL", "").replace(/#MODEL/g, "\n\r"))
+            modelInfo.push("");
+            download(modelInfo.join("#").replace(/BETAEXT#/g, "BETAEXT#\n\r"))
         },
 
-        update() {
-            var postData = {};
-            var importFwVersion = $("#importFwVersion").val()
-            var splitSharp = importFwVersion.split("#");
-            var splitUnderline = importFwVersion.split("_");
+        addItem(){
+            updateVersion($("#importFwVersion").val());
 
-            if(splitSharp.length > 1){
-                if(splitSharp.length < 10){
-                    splitSharp.insert(1, "REQFW")
-                    splitSharp.insert(2, "REQEXT")
-                }
-
-                postData.MODEL = splitSharp[0];
-                postData.REQFW = splitSharp[1].replace("REQFW", "");
-                postData.REQEXT = splitSharp[2].replace("REQEXT", "");
-                postData.FW = splitSharp[3].replace("FW", "");
-                postData.EXT = splitSharp[4].replace("EXT", "");
-            }
-            else{
-                postData.MODEL = splitUnderline[0];
-                postData.FW = splitUnderline[1].replace(/\./g, '') + splitUnderline[2];
-                postData.EXT = splitUnderline[3].split(".")[0];
-            }
-
-            if($("#isREQ").is(":checked")){
-                postData.REQFW = postData.FW;
-                postData.REQEXT = postData.EXT
-            }
-
-            postData.UT = "4208";
-            postData.MD5 = ($("#firmwareMD5").val() === "") ? "NO_INFO" : $("#firmwareMD5").val();
- 
-            msgRef.child(postData.MODEL).update(postData)
-
-            $("#importFwVersion").val("")
-            $("#firmwareMD5").val("")
+            $("#importFwVersion").val("");
+            $("#firmwareMD5").val("");
+            $("#addItemPage").hide();
+            $("#pageMask").hide();
         },
 
         checkFw(event) {
             var modelName = $(event.currentTarget).parent().attr("id");
             var target = this.versionInfo[modelName];
             var $this = $(event.currentTarget);
+            var path = $("#pathSelector").val();
+
+            var postData = {
+                PATH: (downloadPath[path]) ? downloadPath[path] : "Wireless",
+                MODEL: target.MODEL,
+                FW: target.FW,
+                EXT: target.EXT,
+                MD5: target.MD5
+            }
+
+            if(debugMode){
+                var fileType = {
+                    "trx": "_un.zip", 
+                    "rsa": "_rsa.zip",
+                    "note": "_US_note.zip"
+                };
+
+                var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/"
+                downloadLink += postData.PATH;
+                downloadLink += "/ASUSWRT/";
+                downloadLink += postData.MODEL;
+                downloadLink += "_";
+                downloadLink += postData.FW.replace("004", "004_");
+                downloadLink += "_";
+                downloadLink += postData.EXT;
+            
+                console.log("[checkFw->Query]", postData);
+                console.log("[checkFw->trxLink]", downloadLink+fileType.trx);
+                console.log("[checkFw->rsaLink]", downloadLink+fileType.rsa);
+                console.log("[checkFw->noteLink]", downloadLink+fileType.note);
+            }
 
             $this
                 .css({"background-color": "#FFF"})
@@ -147,14 +232,10 @@ export default {
 
             $.ajax({
                 url: "http://localhost:3000/liveUpdateTest.cgi",
-                data: {
-                    MODEL: target.MODEL,
-                    FW: target.FW,
-                    EXT: target.EXT,
-                    TYPE: "note",
-                    MD5: target.MD5,
-                },
+                data: postData,
                 success: function(res){
+                    if(debugMode) console.log("[checkFw->Result] " + postData.MODEL + ": " + res)
+
                     if(res.indexOf("No") !== -1){
                         $this.css({"background-color":"#FCC"})
                     }
@@ -178,45 +259,107 @@ export default {
         },
 
         remove() {
-            var modelName = $(event.currentTarget).parent().attr("id");
-            var target = this.versionInfo[modelName];
-            msgRef.child(target.MODEL).remove();        
+            if(confirm("Are you sure?")){
+                var modelName = $(event.currentTarget).parent().attr("id");
+                var target = this.versionInfo[modelName];
+                msgRef.child(target.MODEL).remove();        
+            }
         },
 
         updateMD5() {
             var modelName = $(event.currentTarget).parent().attr("id");
             var target = this.versionInfo[modelName];
+            var path = $("#pathSelector").val();
 
             $.ajax({
                 url: "http://localhost:3000/updateMD5.cgi",
                 data: {
+                    PATH: (downloadPath[path]) ? downloadPath[path] : "Wireless/ASUSWRT/",
                     MODEL: target.MODEL,
                     FW: target.FW,
                     EXT: target.EXT,
                 },
                 success: function(res){
+                    if(debugMode) console.log("[updateMD5]", {"MD5": res});
                     msgRef.child(target.MODEL).update({"MD5": res});
                 }
             })
+        },
+
+        changePath() {
+            const vm = this;
+            var path = $(event.currentTarget).val();
+
+            msgRef = firebase.database().ref(path);
+            msgRef.on('value', function(data) {
+                vm.versionInfo = data.val();
+            })
+        },
+
+        showAddPage(){
+            $("#pageMask").show();
+            $("#addItemPage").fadeIn(300);
+        },
+
+        filesChange(fieldName, fileList) {
+            var fileToLoad = document.getElementById("uploadField").files[0];
+            var fileReader = new FileReader();
+
+            fileReader.onload = function(fileLoadedEvent){
+                var textFromFileLoaded = fileLoadedEvent.target.result.replace(/\r/g, "#SPLIT").replace(/\n/g, "#SPLIT").split("#SPLIT");
+
+                textFromFileLoaded.map(modelInfo => {
+                    updateVersion(modelInfo)
+                })
+            };
+
+            fileReader.readAsText(fileToLoad, "UTF-8");
+
+            $("#importFwVersion").val("");
+            $("#firmwareMD5").val("");
+            $("#addItemPage").hide();
+            $("#pageMask").hide();            
         }
     },
 
     mounted() {
         const vm = this;
+
+        msgRef = firebase.database().ref(defPath);
         msgRef.on('value', function(data) {
-            const val = data.val();
-            vm.versionInfo = val;
+            vm.versionInfo = data.val();
         })
+
+        var rootRef = firebase.database().ref();
+        rootRef.once('value', function(data) {
+            $("#pathSelector").empty()
+
+            for(var path in data.val()){
+                $("#pathSelector")
+                    .append($('<option />')
+                        .text(path.toUpperCase())
+                        .val(path)
+                    )
+            }
+
+            $("#pathSelector").val(defPath)
+         })
     },
 
     updated() {
-        $(".editable").click(function(){
-            if($(this).find($("input")).length != 0) return false;
+        if(debugMode) $(".debugMode").show()
 
-            var cachedVal = $(this).html();
+        $(".editable").click(function(){
+            var $content = $($(this).find($("div"))[0]);
+
+            if($(this).find($("input")).length != 0) return false;
+            if(!$content) return false;
+
+            var cachedVal = $content.html();
             var editInput = $('<input>');
 
-            $(this).html(editInput)
+            $content.hide();
+            $(this).append(editInput);
             editInput
                 .css({
                     "width": "95%",
@@ -230,10 +373,14 @@ export default {
                     var cachedVal = $(this).val();
                     var modelName = $(this).parent().parent().attr("id");
                     var header = $(this).parent().attr("name");
+                    var postData = JSON.parse('{"' + header +  '":"' + cachedVal + '"}');
 
-                    msgRef.child(modelName).update(JSON.parse('{"' + header +  '":"' + cachedVal + '"}'));
-                    $(this).parent().html(cachedVal)
-                    $("#pageMask").hide()                    
+                    if(debugMode) console.log("[updateItem] " + modelName + ": ", postData)
+                    msgRef.child(modelName).update(postData);
+
+                    $("#pageMask").hide();
+                    $($(this).parent().find("div")[0]).show();
+                    $(this).remove();
                 })
                 .val(cachedVal)
                 .focus()
@@ -242,7 +389,8 @@ export default {
         })
 
         $("#pageMask").click(function(){
-            $(this).hide()
+            $("#pageMask").hide();
+            $("#addItemPage").hide();
         })
 
         $(".checkStatus").each(function(i, item){
@@ -272,6 +420,41 @@ export default {
         height: 100%;
         position: fixed;
     }
+    #addItemPage{
+        background: #97a7b7;
+        border-radius: 10px;
+        width: 50%;
+        height: 230px;
+        top: 60px;
+        left: 275px;
+        position: absolute;
+    }
+    #addItemPage > div{
+        text-align: left;
+        padding: 30px;
+    }
+    #addItemPage > div > div{
+        margin-top: 10px;
+    }
+    #isREQ{
+        color:#FFF;
+    }
+    .updateBtnContainer{
+        text-align: right;
+        width: 100%;
+    }
+    #updateBtn{
+        line-height: 50px;
+        background-color: #05F;
+        border-radius: 3px;
+        color: #FFF;
+        width: 100px;
+        height: 50px;
+        font-size: 20px;
+        cursor: pointer;
+        text-align: center;
+        display: inline-block;
+    }
     .infoTable{
         margin-top: 20px;
         text-align: left;
@@ -289,7 +472,10 @@ export default {
     .btnContainer{
         width: 100%;
         text-align: center;
-        margin-top: 20px
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
     .button{
         font-family: monospace;
@@ -298,7 +484,6 @@ export default {
         background-color: #05F;
         border-radius: 3px;
         color: #FFF;
-        cursor: pointer;
         margin-left: 10px;
         border-radius: 50px;
         width: 50px;
@@ -328,20 +513,12 @@ export default {
         background: url(/static/image/check.png) no-repeat;
         background-size: cover;
     }
-    #updateBtn{
+    #addBtn{
         background: url(/static/image/add.png) no-repeat;
         background-size: cover;
     }
-    .editTextInput{
-        width:95%;
-        height:20px;
-        padding:5px;
-        border: 0px;
-        border-bottom: 1px solid #CCC;
-        font-family: monospace;
-    }
     .textInput{
-        width:300px;
+        width:95%;
         height:20px;
         padding:5px;
         border: 0px;
@@ -362,5 +539,9 @@ export default {
     }
     .md5{
         word-break: break-all;
+    }
+    #pathSelector{
+        width: 150px;
+        height: 30px;
     }
 </style>
