@@ -83,7 +83,7 @@
 </template>
 
 <script>
-var debugMode = true;
+var debugMode = false;
 
 const defPath = 'official'
 var msgRef = firebase.database().ref(defPath);
