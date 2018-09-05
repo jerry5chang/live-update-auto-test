@@ -2,7 +2,34 @@ var express = require('express');
 var app = express();
 var urllib = require('urllib');
 var md5 = require('md5')
- 
+
+var getDownloadLink = function(fwInfo, type){
+    const fileType = {
+    	"trx": "un.zip", 
+        "rsa": "rsa.zip",
+        "note": "US_note.zip"
+    };
+
+	const downloadPath = {
+	    "official": "Wireless/ASUSWRT/",
+	    "official_v30": "Wireless/ASUSWRT/",
+	    "sq": "LiveUpdate/Release/Wireless_SQ/",
+	    "mr": "LiveUpdate/Release/Wireless_SQ/MR1/" 
+	}
+
+    var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/"
+    downloadLink += (fwInfo.PATH) ? downloadPath[fwInfo.PATH] : "Wireless/ASUSWRT/";
+    downloadLink += fwInfo.MODEL;
+    downloadLink += "_";
+    downloadLink += fwInfo.FW.replace("004", "004_");
+    downloadLink += "_";
+    downloadLink += fwInfo.EXT;
+    downloadLink += "_";
+    downloadLink += fileType[type];
+
+    return downloadLink;
+}
+
 app.all('*', function(req, res, next) {
 	res.header("Access-Control-Allow-Origin", "*");
 	res.header("Access-Control-Allow-Headers", "X-Requested-With");
@@ -10,23 +37,7 @@ app.all('*', function(req, res, next) {
 });
 
 app.get('/updateMD5.cgi', function (req, res) {
-    var err = [];
-
-    var fileType = {
-    	"trx": "_un.zip", 
-        "rsa": "_rsa.zip",
-        "note": "_US_note.zip"
-    };
-
-    var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/"
-    downloadLink += (req.query.PATH) ? req.query.PATH : "Wireless/ASUSWRT/";
-    downloadLink += req.query.MODEL;
-    downloadLink += "_";
-    downloadLink += req.query.FW.replace("004", "004_");
-    downloadLink += "_";
-    downloadLink += req.query.EXT;
-
-	urllib.request(downloadLink + fileType.trx, function (errTrx, dataTrx, resTrx) {
+	urllib.request(getDownloadLink(req.query, "trx"), function (errTrx, dataTrx, resTrx) {
 		if(resTrx.statusCode.toString() === "404"){
 			res.send("No Firmware");
 		}
@@ -37,29 +48,15 @@ app.get('/updateMD5.cgi', function (req, res) {
 });
 
 app.get('/liveUpdateTest.cgi', function (req, res) {
-    var err = [];
+	var err = [];
 
-    var fileType = {
-    	"trx": "_un.zip", 
-        "rsa": "_rsa.zip",
-        "note": "_US_note.zip"
-    };
-
-    var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/"
-    downloadLink += (req.query.PATH) ? req.query.PATH : "Wireless/ASUSWRT/";
-    downloadLink += req.query.MODEL;
-    downloadLink += "_";
-    downloadLink += req.query.FW.replace("004", "004_");
-    downloadLink += "_";
-    downloadLink += req.query.EXT;
-
-	urllib.request(downloadLink + fileType.rsa, function (errRsa, dataRsa, resRsa) {
+	urllib.request(getDownloadLink(req.query, "rsa"), function (errRsa, dataRsa, resRsa) {
 		if(resRsa.statusCode.toString() === "404") err.push("No RSA");
 
-		urllib.request(downloadLink + fileType.note, function (errNote, dataNote, resNote) {
+		urllib.request(getDownloadLink(req.query, "note"), function (errNote, dataNote, resNote) {
 			if(resNote.statusCode.toString() === "404") err.push("No Note");
 	
-			urllib.request(downloadLink + fileType.trx, function (errTrx, dataTrx, resTrx) {
+			urllib.request(getDownloadLink(req.query, "trx"), function (errTrx, dataTrx, resTrx) {
 				if(resTrx.statusCode.toString() === "404"){
 					err.push("No FW")
 				}
@@ -74,5 +71,5 @@ app.get('/liveUpdateTest.cgi', function (req, res) {
 });
 
 app.listen(3000, function () {
-	console.log('Example app listening on port 3000!');
+	console.log('LiveUpdate proxy listening on port 3000!');
 });

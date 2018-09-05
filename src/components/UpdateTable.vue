@@ -17,8 +17,7 @@
                 </div>
 
                 <div class="debugMode">
-                    <input type="file" id="uploadField" @change="filesChange($event.target.files);"
-                    class="input-file">
+                    <input type="file" id="uploadField" @change="filesChange($event.target.files);">
                 </div>
             
                 <div class="updateBtnContainer">
@@ -83,16 +82,9 @@
 </template>
 
 <script>
-var debugMode = false;
-
 const defPath = 'official'
+var debugMode = false;
 var msgRef = firebase.database().ref(defPath);
-const downloadPath = {
-    "official": "Wireless/ASUSWRT/",
-    "official_v30": "Wireless/ASUSWRT/",
-    "sq": "LiveUpdate/Release/Wireless_SQ/",
-    "mr": "LiveUpdate/Release/Wireless_SQ/" 
-}
 
 function updateVersion(importFwVersion) {
     if(importFwVersion == "") return false;
@@ -194,37 +186,17 @@ export default {
             var modelName = $(event.currentTarget).parent().attr("id");
             var target = this.versionInfo[modelName];
             var $this = $(event.currentTarget);
-            var path = $("#pathSelector").val();
+            var updatePath = $("#pathSelector").val();
 
             var postData = {
-                PATH: (downloadPath[path]) ? downloadPath[path] : "Wireless",
+                PATH: updatePath,
                 MODEL: target.MODEL,
                 FW: target.FW,
                 EXT: target.EXT,
                 MD5: target.MD5
             }
 
-            if(debugMode){
-                var fileType = {
-                    "trx": "_un.zip", 
-                    "rsa": "_rsa.zip",
-                    "note": "_US_note.zip"
-                };
-
-                var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/"
-                downloadLink += postData.PATH;
-                downloadLink += "/ASUSWRT/";
-                downloadLink += postData.MODEL;
-                downloadLink += "_";
-                downloadLink += postData.FW.replace("004", "004_");
-                downloadLink += "_";
-                downloadLink += postData.EXT;
-            
-                console.log("[checkFw->Query]", postData);
-                console.log("[checkFw->trxLink]", downloadLink+fileType.trx);
-                console.log("[checkFw->rsaLink]", downloadLink+fileType.rsa);
-                console.log("[checkFw->noteLink]", downloadLink+fileType.note);
-            }
+            if(debugMode) console.log("[checkFw->Query]", postData);
 
             $this
                 .css({"background-color": "#FFF"})
@@ -269,12 +241,12 @@ export default {
         updateMD5() {
             var modelName = $(event.currentTarget).parent().attr("id");
             var target = this.versionInfo[modelName];
-            var path = $("#pathSelector").val();
+            var updatePath = $("#pathSelector").val();
 
             $.ajax({
                 url: "http://localhost:3000/updateMD5.cgi",
                 data: {
-                    PATH: (downloadPath[path]) ? downloadPath[path] : "Wireless/ASUSWRT/",
+                    PATH: updatePath,
                     MODEL: target.MODEL,
                     FW: target.FW,
                     EXT: target.EXT,
@@ -379,7 +351,7 @@ export default {
                     msgRef.child(modelName).update(postData);
 
                     $("#pageMask").hide();
-                    $($(this).parent().find("div")[0]).show();
+                    $(this).parent().find("div").show();
                     $(this).remove();
                 })
                 .val(cachedVal)
@@ -424,9 +396,8 @@ export default {
         background: #97a7b7;
         border-radius: 10px;
         width: 50%;
-        height: 230px;
-        top: 60px;
-        left: 275px;
+        top: 100px;
+        left: 25%;
         position: absolute;
     }
     #addItemPage > div{
@@ -543,5 +514,8 @@ export default {
     #pathSelector{
         width: 150px;
         height: 30px;
+    }
+    .debugMode{
+        display: none;
     }
 </style>
