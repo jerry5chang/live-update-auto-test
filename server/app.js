@@ -11,14 +11,15 @@ var getDownloadLink = function(fwInfo, type){
     };
 
 	const downloadPath = {
-	    "official": "Wireless/ASUSWRT/",
-	    "official_v30": "Wireless/ASUSWRT/",
+	    "official": "wireless/ASUSWRT/",
+	    "official_v30": "wireless/ASUSWRT/",
 	    "sq": "LiveUpdate/Release/Wireless_SQ/",
-	    "mr": "LiveUpdate/Release/Wireless_SQ/MR1/" 
+	    "mr": "LiveUpdate/Release/Wireless_SQ/MR1/",
+	    "test_viz": "wireless/ASUSWRT/" 
 	}
 
     var downloadLink = "https://dlcdnets.asus.com/pub/ASUS/"
-    downloadLink += (fwInfo.PATH) ? downloadPath[fwInfo.PATH] : "Wireless/ASUSWRT/";
+    downloadLink += (fwInfo.PATH) ? downloadPath[fwInfo.PATH] : "wireless/ASUSWRT/";
     downloadLink += fwInfo.MODEL;
     downloadLink += "_";
     downloadLink += fwInfo.FW.replace("004", "004_");
@@ -49,6 +50,10 @@ app.get('/updateMD5.cgi', function (req, res) {
 
 app.get('/liveUpdateTest.cgi', function (req, res) {
 	var err = [];
+
+	console.log(getDownloadLink(req.query, "rsa"))
+	console.log(getDownloadLink(req.query, "note"))
+	console.log(getDownloadLink(req.query, "trx"))
 
 	urllib.request(getDownloadLink(req.query, "rsa"), function (errRsa, dataRsa, resRsa) {
 		if(resRsa.statusCode.toString() === "404") err.push("No RSA");
